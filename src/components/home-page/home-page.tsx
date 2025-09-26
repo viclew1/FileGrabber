@@ -1,6 +1,8 @@
 import styles from './home-page.module.css';
-import { Button, Flex, Text, TextField } from '@radix-ui/themes';
+import { Flex, Text, TextField } from '@radix-ui/themes';
 import { UnplugIcon } from 'lucide-react';
+import TooltipContainer from '../custom/base/tooltip/tooltip-container';
+import SolidButton from '../custom/base/buttons/solid-button';
 
 export default function HomePageContainer() {
     return (
@@ -10,9 +12,11 @@ export default function HomePageContainer() {
                     <UnplugIcon />
                 </TextField.Slot>
             </TextField.Root>
-            <Button>
-                <Text>Connect</Text>
-            </Button>
+            <TooltipContainer tooltipContent={'Connect'}>
+                <SolidButton>
+                    <Text>Connect</Text>
+                </SolidButton>
+            </TooltipContainer>
         </Flex>
     );
 }

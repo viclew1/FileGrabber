@@ -1,0 +1,11 @@
+.defaultTooltipContent {
+    background-color: white;
+    color: black;
+    border-radius: 4px;
+    padding: 5px;
+    font: var(--default-font);
+}
+
+.arrow {
+    fill: white;
+}

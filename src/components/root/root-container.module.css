@@ -1,39 +1,30 @@
-.rootContainer {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    width: 100vw;
 
-    .titleBar {
-        background-color: var(--background-darkest-color);
-        -webkit-app-region: drag;
-        height: 4rem;
-        align-items: center;
-        padding: 0 0.5rem;
-        gap: 1rem;
+.titleBar {
+    background-color: var(--background-darkest-color);
+    -webkit-app-region: drag;
+    padding-left: 0.5rem;
 
-        .logo {
-            height: 3rem;
-            width: auto;
-        }
-
-        .appName {
-            font-family: 'OCRA';
-            font-weight: bold;
-            font-size: 1.3rem;
-        }
+    .logo {
+        height: 3rem;
+        width: auto;
     }
 
-    .mainContainer {
+    .appName {
+        font-family: 'OCRA';
+        font-weight: bold;
+        font-size: 1.3rem;
+    }
+}
+
+.mainContainer {
+    display: flex;
+    height: 100%;
+    width: 100%;
+
+    .main {
         display: flex;
+
         height: 100%;
         width: 100%;
-
-        .main {
-            display: flex;
-
-            height: 100%;
-            width: 100%;
-        }
     }
 }
