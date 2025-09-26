@@ -1,18 +1,18 @@
 import styles from './home-page.module.css';
-import { Box, Button, Container, TextField } from '@radix-ui/themes';
+import { Button, Flex, Text, TextField } from '@radix-ui/themes';
+import { UnplugIcon } from 'lucide-react';
 
 export default function HomePageContainer() {
     return (
-        <div className={styles.homePageContainer}>
-            <TextField.Root placeholder="Search the docs…">
-                <TextField.Slot></TextField.Slot>
+        <Flex className={styles.homePageContainer}>
+            <TextField.Root placeholder="Pear IP address">
+                <TextField.Slot>
+                    <UnplugIcon />
+                </TextField.Slot>
             </TextField.Root>
-            <Button variant={'solid'}>test</Button>
-            <Box>
-                <Container size="1">
-                    <p>lol</p>
-                </Container>
-            </Box>
-        </div>
+            <Button>
+                <Text>Connect</Text>
+            </Button>
+        </Flex>
     );
 }
