@@ -1,13 +1,13 @@
+import { Flex } from '@radix-ui/themes';
+import FilesGrabContainer from './files-grab/files-grab-container';
+import FilesShareContainer from './files-share/files-share-container';
 import styles from './home-page.module.css';
-import ConnectionInput from './connection/connection-input';
-import ConnectionStatus from './connection/connection-status';
-import VerticalFlex from '../custom/base/flex/vertical-flex';
 
 export default function HomePageContainer() {
     return (
-        <VerticalFlex gap={'1'} className={styles.homePageContainer}>
-            <ConnectionInput />
-            <ConnectionStatus />
-        </VerticalFlex>
+        <Flex gap={'1'} className={styles.homePageContainer} width={'100%'}>
+            <FilesGrabContainer />
+            <FilesShareContainer />
+        </Flex>
     );
 }

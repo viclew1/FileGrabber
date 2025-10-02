@@ -1,7 +1,7 @@
-import { useConnection } from '../../../contexts/connection-context';
+import { useSocketClient } from '../../../../contexts/socket-client-context';
 import { Badge, Flex, Text } from '@radix-ui/themes';
 
-export default function ConnectionStatus() {
+export default function ClientConnectionStatus() {
     return (
         <Flex align={'center'} gap={'1'} width={'fit-content'}>
             <Text size={'2'}>Connection status:</Text>
@@ -11,7 +11,7 @@ export default function ConnectionStatus() {
 }
 
 function ConnectionBadge() {
-    const { status } = useConnection();
+    const { status } = useSocketClient();
     if (status === 'connecting') {
         return <Badge color={'orange'}>Connecting</Badge>;
     } else if (status === 'disconnecting') {
