@@ -7,7 +7,7 @@ import { NetworkIcon, SettingsIcon } from 'lucide-react';
 
 type Tab = {
     path: string;
-    icon: ComponentType<{ width: number; height: number }>;
+    icon: ComponentType<{ width: number; height: number; color: string }>;
 };
 
 const tabs: Tab[] = [
@@ -21,7 +21,7 @@ export default function SideBarContainer() {
             <VerticalFlex>
                 {tabs.map(({ path, icon: Icon }) => (
                     <SideBarButton key={path} path={path}>
-                        <Icon width={32} height={32} />
+                        <Icon width={32} height={32} color={'white'} />
                     </SideBarButton>
                 ))}
             </VerticalFlex>

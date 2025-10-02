@@ -18,7 +18,7 @@ export default function TooltipContainer({
     const { className: tooltipContentClassName, ...tooltipPropsRest } = tooltipProps;
     return (
         <Tooltip.Provider delayDuration={300} {...tooltipProviderProps}>
-            <Tooltip.Root>
+            <Tooltip.Root disableHoverableContent>
                 <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
                 <Tooltip.Portal>
                     <Tooltip.Content

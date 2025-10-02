@@ -1,17 +1,7 @@
 .sideBarContainer {
     background-color: var(--background-darker-color);
+}
 
-    .sideBarButtonContainer {
-        overflow: hidden;
-
-        &.selected {
-            background-color: var(--background-lighter-color);
-        }
-
-        .sideBarButton {
-            width: 4rem;
-            height: 4rem;
-            color: white;
-        }
-    }
+.selected {
+    background-color: var(--background-lighter-color);
 }

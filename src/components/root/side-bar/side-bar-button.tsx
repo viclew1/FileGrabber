@@ -10,14 +10,16 @@ export default function SideBarButton({ path, children }: { path: string; childr
     const { location } = useRouterState();
     const selected = location.pathname === path;
     return (
-        <Flex className={classNames(styles.sideBarButtonContainer, { [styles.selected]: selected })}>
+        <Flex overflow={'hidden'} className={classNames({ [styles.selected]: selected })}>
             <GhostButton
                 className={styles.sideBarButton}
                 onClick={async () => {
                     await router.navigate({ to: path });
                 }}
             >
-                {children}
+                <Flex width={'4rem'} height={'4rem'} align={'center'} justify={'center'}>
+                    {children}
+                </Flex>
             </GhostButton>
         </Flex>
     );

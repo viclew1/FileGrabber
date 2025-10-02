@@ -3,7 +3,8 @@
     color: black;
     border-radius: 4px;
     padding: 5px;
-    font: var(--default-font);
+    font-family: var(--default-font), serif;
+    font-size: 0.9rem;
 }
 
 .arrow {

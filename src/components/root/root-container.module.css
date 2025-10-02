@@ -2,17 +2,11 @@
 .titleBar {
     background-color: var(--background-darkest-color);
     -webkit-app-region: drag;
-    padding-left: 0.5rem;
 
     .logo {
-        height: 3rem;
+        padding: 0.5rem;
+        height: 100%;
         width: auto;
-    }
-
-    .appName {
-        font-family: 'OCRA';
-        font-weight: bold;
-        font-size: 1.3rem;
     }
 }
 
