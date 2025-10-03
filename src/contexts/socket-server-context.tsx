@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
     ServerCrashedEvent,
-    ServerReadyEvent,
     ServerSocketManagerStatus,
+    ServerStatusChangeEvent,
 } from '../utils/socket/server/server-socket-manager-types';
-import ServerSocketManager from '../utils/socket/server/server-socket-manager';
 
 type SocketServerContextType = {
     serverPortText: string;
@@ -20,47 +19,52 @@ type SocketServerContextType = {
 const SocketServerContext = createContext<SocketServerContextType | undefined>(undefined);
 
 export function SocketServerProvider({ children }: { children: React.ReactNode }) {
+    const [isLoading, setIsLoading] = useState(true);
     const [serverPortText, setServerPortText] = useState('');
     const [status, setStatus] = useState<ServerSocketManagerStatus>('stopped');
 
-    const onStarted = (event: ServerReadyEvent) => {
-        setStatus('ready');
-    };
-
-    const onStopped = () => {
-        setStatus('stopped');
-    };
-
     const onCrashed = (event: ServerCrashedEvent) => {
         console.error('Server crashed:', event.error);
-        setStatus('crashed');
+    };
+
+    const onStatusChange = (event: ServerStatusChangeEvent) => {
+        setIsLoading(false);
+        setStatus(event.status);
     };
 
     useEffect(() => {
-        ServerSocketManager.on('started', onStarted);
-        ServerSocketManager.on('stopped', onStopped);
-        ServerSocketManager.on('crashed', onCrashed);
+        const api = window.electronAPI;
+
+        (async () => {
+            const [port, srvStatus] = await Promise.all([api.getServerPort(), api.getServerStatus()]);
+            if (port != null) setServerPortText(String(port));
+            setStatus(srvStatus);
+            setIsLoading(false);
+        })();
+
+        const statusHandler = (payload: ServerStatusChangeEvent) => onStatusChange(payload);
+        const crashHandler = (payload: ServerCrashedEvent) => onCrashed(payload);
+        api.onServerStatusChange(statusHandler);
+        api.onServerCrashed(crashHandler);
 
         return () => {
-            ServerSocketManager.off('started', onStarted);
-            ServerSocketManager.off('stopped', onStopped);
-            ServerSocketManager.off('crashed', onCrashed);
+            api.offServerStatusChange(statusHandler as any);
+            api.offServerCrashed(crashHandler as any);
         };
     }, []);
 
     function startServer() {
-        setStatus('starting');
-        ServerSocketManager.start(serverPortText);
+        setIsLoading(true);
+        window.electronAPI.startServer(serverPortText);
     }
 
     function stopServer() {
-        setStatus('stopping');
-        ServerSocketManager.closeServer();
+        setIsLoading(true);
+        window.electronAPI.stopServer();
     }
 
     const isStarted = status === 'ready';
     const isStopped = status === 'stopped' || status === 'crashed';
-    const isLoading = status === 'starting' || status === 'stopping';
 
     return (
         <SocketServerContext.Provider

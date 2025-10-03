@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import ClientSocketManager from '../utils/socket/client/client-socket-manager';
 import {
     ClientConnectedEvent,
     ClientConnectionFailureEvent,
@@ -23,29 +22,40 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
     const [peerUrlText, setPeerUrlText] = useState('');
     const [status, setStatus] = useState<ClientSocketManagerStatus>('disconnected');
 
-    const onConnected = (event: ClientConnectedEvent) => {
-        setPeerUrlText(event.peerUrl);
-        setStatus('connected');
-    };
-
-    const onDisconnected = () => {
-        setStatus('disconnected');
-    };
-
-    const onConnectionFailure = (event: ClientConnectionFailureEvent) => {
-        console.error('Connection failure:', event.error);
-        setStatus('connectionFailure');
-    };
-
     useEffect(() => {
-        ClientSocketManager.on('connected', onConnected);
-        ClientSocketManager.on('disconnected', onDisconnected);
-        ClientSocketManager.on('connectionFailure', onConnectionFailure);
+        const api = window.electronAPI;
+
+        (async () => {
+            const [peerUrl, currentStatus] = await Promise.all([api.getClientPeerUrl(), api.getClientStatus()]);
+            if (peerUrl) setPeerUrlText(peerUrl);
+            setStatus(currentStatus);
+        })();
+
+        const onConnected = (event: ClientConnectedEvent) => {
+            setPeerUrlText(event.peerUrl);
+            setStatus('connected');
+        };
+
+        const onDisconnected = () => {
+            setStatus('disconnected');
+        };
+
+        const onConnectionFailure = (event: ClientConnectionFailureEvent) => {
+            console.error('Connection failure:', event.error);
+            setStatus('connectionFailure');
+        };
+
+        const connectedHandler = (payload: ClientConnectedEvent) => onConnected(payload);
+        const disconnectedHandler = (_payload?: undefined) => onDisconnected();
+        const failureHandler = (payload: ClientConnectionFailureEvent) => onConnectionFailure(payload);
+        api.onClientConnected(connectedHandler);
+        api.onClientDisconnected(disconnectedHandler as any);
+        api.onClientConnectionFailure(failureHandler);
 
         return () => {
-            ClientSocketManager.off('connected', onConnected);
-            ClientSocketManager.off('disconnected', onDisconnected);
-            ClientSocketManager.off('connectionFailure', onConnectionFailure);
+            api.offClientConnected(connectedHandler as any);
+            api.offClientDisconnected(disconnectedHandler as any);
+            api.offClientConnectionFailure(failureHandler as any);
         };
     }, []);
 
@@ -61,11 +71,11 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
                 status,
                 connect: () => {
                     setStatus('connecting');
-                    ClientSocketManager.connect(peerUrlText);
+                    window.electronAPI.connectClient(peerUrlText);
                 },
                 disconnect: () => {
                     setStatus('disconnecting');
-                    ClientSocketManager.disconnect();
+                    window.electronAPI.disconnectClient();
                 },
                 isConnected,
                 isDisconnected,

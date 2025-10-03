@@ -1,11 +1,15 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import ServerSocketManager from './utils/socket/server/server-socket-manager';
+import ClientSocketManager from './utils/socket/client/client-socket-manager';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
     app.quit();
 }
+
+let mainWindowRef: BrowserWindow | null = null;
 
 const createWindow = () => {
     // Create the browser window.
@@ -40,6 +44,13 @@ const createWindow = () => {
 
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
+
+    mainWindow.on('closed', () => {
+        mainWindowRef = null;
+    });
+
+    // keep a reference for IPC event routing
+    mainWindowRef = mainWindow;
 };
 
 // Menu.setApplicationMenu(null);
@@ -68,3 +79,24 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+ipcMain.handle('server:start', (_event, portStr: string) => ServerSocketManager.start(portStr));
+ipcMain.handle('server:stop', () => ServerSocketManager.closeServer());
+ipcMain.handle('client:connect', (_event, peerUrl: string) => ClientSocketManager.connect(peerUrl));
+ipcMain.handle('client:disconnect', () => ClientSocketManager.disconnect());
+ipcMain.handle('client:getPeerUrl', () => ClientSocketManager.getPeerUrl());
+ipcMain.handle('client:getStatus', () => ClientSocketManager.getClientStatus());
+ipcMain.handle('server:getPort', () => ServerSocketManager.getPort());
+ipcMain.handle('server:getStatus', () => ServerSocketManager.getServerStatus());
+
+ServerSocketManager.on('started', (payload) => mainWindowRef?.webContents.send('server:started', payload))
+    .on('stopped', (payload) => mainWindowRef?.webContents.send('server:stopped', payload))
+    .on('crashed', (payload) => mainWindowRef?.webContents.send('server:crashed', payload))
+    .on('message', (payload) => mainWindowRef?.webContents.send('server:message', payload))
+    .on('statusChange', (payload) => mainWindowRef?.webContents.send('server:statusChange', payload));
+
+ClientSocketManager.on('connected', (payload) => mainWindowRef?.webContents.send('client:connected', payload))
+    .on('disconnected', (payload) => mainWindowRef?.webContents.send('client:disconnected', payload))
+    .on('connectionFailure', (payload) => mainWindowRef?.webContents.send('client:connectionFailure', payload))
+    .on('message', (payload) => mainWindowRef?.webContents.send('client:message', payload))
+    .on('statusChange', (payload) => mainWindowRef?.webContents.send('client:statusChange', payload));
