@@ -1,23 +1,20 @@
-import { Badge, Flex, Text } from '@radix-ui/themes';
+import { Badge, Flex } from '@radix-ui/themes';
 import { useSocketServer } from '../../../../contexts/socket-server-context';
 
-export default function ServerStatus() {
+export default function ServerStatusBadge() {
     return (
-        <Flex align={'center'} gap={'1'} width={'fit-content'}>
-            <Text size={'2'}>Server status:</Text>
+        <Flex>
             <ConnectionBadge />
         </Flex>
     );
 }
 
 function ConnectionBadge() {
-    const { status } = useSocketServer();
-    if (status === 'starting') {
+    const { status, isLoading } = useSocketServer();
+    if (isLoading) {
         return <Badge color={'orange'}>Starting</Badge>;
-    } else if (status === 'stopping') {
-        return <Badge color={'orange'}>Stopping</Badge>;
     } else if (status === 'ready') {
-        return <Badge color={'green'}>Ready</Badge>;
+        return <Badge color={'mint'}>Ready</Badge>;
     } else if (status === 'stopped') {
         return <Badge color={'red'}>Stopped</Badge>;
     } else if (status === 'crashed') {

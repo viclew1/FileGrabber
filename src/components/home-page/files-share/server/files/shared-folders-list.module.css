@@ -1,0 +1,5 @@
+.sharedFolderCard {
+    background-color: var(--color-background-lighter);
+    border-radius: var(--radius-4);
+    padding: 5px;
+}

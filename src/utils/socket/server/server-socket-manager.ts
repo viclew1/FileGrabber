@@ -1,12 +1,22 @@
 import { Listenable } from '../../listenable';
-import { ServerEventPayloads, ServerSocketManagerStatus } from './server-socket-manager-types';
+import {
+    ServerClient,
+    ServerEventPayloads,
+    ServerSharedFile,
+    ServerSocketManagerStatus,
+} from './server-socket-manager-types';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
+import { ServerSocketMessageHandler } from './server-socket-message-handler';
+import * as fs from 'node:fs';
+import { ClientServerSharedFile } from '../client/client-socket-manager-types';
 
 class ServerSocketManager extends Listenable<ServerEventPayloads> {
     private socketServer: Server | null = null;
     private serverStatus: ServerSocketManagerStatus = 'stopped';
     private port?: number;
+    private clients: Set<ServerClient> = new Set();
+    private sharedFolderByAbsolutePath: Map<string, ServerSharedFile> = new Map();
 
     constructor() {
         super({
@@ -15,6 +25,8 @@ class ServerSocketManager extends Listenable<ServerEventPayloads> {
             message: [],
             crashed: [],
             statusChange: [],
+            clientsUpdate: [],
+            sharedFoldersUpdate: [],
         });
         this.on('statusChange', (e) => (this.serverStatus = e.status));
     }
@@ -23,32 +35,78 @@ class ServerSocketManager extends Listenable<ServerEventPayloads> {
         try {
             if (this.socketServer) this.closeServer();
             const port = parseInt(portStr);
-            this.port = port;
+            this.clients.clear();
 
             const httpServer = createServer();
             this.socketServer = new Server(httpServer, {});
 
-            httpServer.on('connection', (socket) => {
-                console.log('New client connected:', socket.remoteAddress, ':', socket.remotePort);
+            this.socketServer.on('connection', (socket) => {
+                const messageHandler = new ServerSocketMessageHandler(socket);
+                const reqSocket = socket.request.socket;
+                const remoteAddress = reqSocket.remoteAddress || socket.conn.remoteAddress || 'unknown';
+                const remotePort = reqSocket.remotePort ?? 0;
+                const client: ServerClient = {
+                    peerUrl: `${remoteAddress}:${remotePort}`,
+                    connectedAt: Date.now(),
+                };
+                this.onClientConnected(client);
+
+                socket.on('message', (msg) => messageHandler.onMessageReceived(msg));
+                socket.on('disconnect', () => this.onClientDisconnected(client));
+                messageHandler.sendMessage({ type: 'READY', payload: undefined });
             });
-            httpServer.on('listening', () => {
-                this.emit('started', { port: port });
-                this.emit('statusChange', { status: 'ready' });
-            });
-            httpServer.on('error', (error) => {
-                this.emit('crashed', { error });
-                this.emit('statusChange', { status: 'crashed' });
-            });
-            httpServer.on('close', () => {
-                this.emit('stopped', undefined);
-                this.emit('statusChange', { status: 'stopped' });
-            });
+            httpServer.on('listening', () => this.onServerReady(port));
+            httpServer.on('error', (error) => this.onServerCrashed({ error }));
+            httpServer.on('close', () => this.onServerClosed());
 
             httpServer.listen(port);
         } catch (error) {
             console.error(`Error starting server on port ${portStr}:`, error);
-            this.emit('crashed', { error });
+            this.onServerCrashed({ error });
         }
+    }
+
+    private onClientConnected(client: ServerClient) {
+        console.log(`New client connected: ${client.peerUrl}`);
+        this.clients.add(client);
+        this.emitClientsUpdateEvent();
+    }
+
+    private onClientDisconnected(client: ServerClient) {
+        console.log(`Client disconnected: ${client.peerUrl}`);
+        this.clients.delete(client);
+        this.emitClientsUpdateEvent();
+    }
+
+    private onServerReady(port: number) {
+        this.port = port;
+        this.emit('started', { port });
+        this.emit('statusChange', { status: 'ready' });
+    }
+
+    private onServerCrashed(error: unknown) {
+        this.clients.clear();
+        this.port = undefined;
+        this.emit('crashed', { error });
+        this.emit('statusChange', { status: 'crashed' });
+        this.emitClientsUpdateEvent();
+    }
+
+    private onServerClosed() {
+        this.clients.clear();
+        this.port = undefined;
+        this.emit('stopped', undefined);
+        this.emit('statusChange', { status: 'stopped' });
+        this.emitClientsUpdateEvent();
+    }
+
+    private onSharedFoldersUpdate() {
+        const sharedFolders = this.getSharedFolders();
+        this.emit('sharedFoldersUpdate', { sharedFolders });
+    }
+
+    private emitClientsUpdateEvent() {
+        this.emit('clientsUpdate', { clients: this.getClients() });
     }
 
     closeServer() {
@@ -63,7 +121,73 @@ class ServerSocketManager extends Listenable<ServerEventPayloads> {
     }
 
     getPort(): number | undefined {
-        return this.serverStatus === 'ready' ? this.port : undefined;
+        return this.port;
+    }
+
+    getClients(): ServerClient[] {
+        return Array.from(this.clients);
+    }
+
+    getSharedFolders(): ServerSharedFile[] {
+        return Array.from(this.sharedFolderByAbsolutePath.values());
+    }
+
+    getSharedFiles(filesPath: string): ClientServerSharedFile[] {
+        if (filesPath === '/' || filesPath === '') {
+            const sharedFolders = this.getSharedFolders();
+            return sharedFolders.map((f) => ({
+                fileName: f.fileName,
+                type: 'folder',
+            }));
+        }
+        const pathSegments = filesPath.split('/').filter((segment) => segment !== '');
+        const baseSharedFolder = this.getSharedFolders().find((folder) => folder.fileName === pathSegments[0]);
+        if (!baseSharedFolder) return [];
+        pathSegments.splice(0, 1);
+        const absolutePath = baseSharedFolder.absolutePath + '/' + pathSegments.join('/');
+        return fs.readdirSync(absolutePath).map((fileName) => {
+            const fileAbsolutePath = absolutePath + '/' + fileName;
+            const lstat = fs.lstatSync(fileAbsolutePath);
+            return {
+                fileName,
+                type: lstat.isDirectory() ? 'folder' : 'file',
+            };
+        });
+    }
+
+    addSharedFolders(foldersPaths: string[]) {
+        console.log('Adding shared folders:', foldersPaths);
+
+        foldersPaths
+            .map((folderPath) => this.buildSharedFolder(folderPath))
+            .forEach((folder) => this.sharedFolderByAbsolutePath.set(folder.absolutePath, folder));
+        this.onSharedFoldersUpdate();
+    }
+
+    removeSharedFolder(folderPath: string) {
+        console.log('Removing shared folder:', folderPath);
+        const folder = this.buildSharedFolder(folderPath);
+        this.sharedFolderByAbsolutePath.delete(folder.absolutePath);
+        this.onSharedFoldersUpdate();
+    }
+
+    setSharedFolders(foldersPaths: string[]) {
+        console.log('Setting shared folders:', foldersPaths);
+        this.sharedFolderByAbsolutePath.clear();
+        foldersPaths
+            .map((folderPath) => this.buildSharedFolder(folderPath))
+            .forEach((folder) => this.sharedFolderByAbsolutePath.set(folder.absolutePath, folder));
+        this.onSharedFoldersUpdate();
+    }
+
+    private buildSharedFolder(folderPath: string): ServerSharedFile {
+        const absolutePath = folderPath.trim().replaceAll('\\', '/');
+        const fileName = absolutePath.split('/').pop();
+        if (!fileName) throw new Error('Invalid folder path');
+        return {
+            absolutePath,
+            fileName,
+        };
     }
 }
 

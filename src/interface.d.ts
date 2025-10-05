@@ -1,12 +1,18 @@
 import {
+    ServerClient,
+    ServerClientsUpdateEvent,
     ServerCrashedEvent,
     ServerReadyEvent,
+    ServerSharedFoldersUpdatedEvent,
     ServerSocketManagerStatus,
     ServerStatusChangeEvent,
 } from './utils/socket/server/server-socket-manager-types';
 import {
     ClientConnectedEvent,
     ClientConnectionFailureEvent,
+    ClientLoadingFilesStatusChangeEvent,
+    ClientServerSharedFile,
+    ClientServerSharedFilesChangeEvent,
     ClientSocketManagerStatus,
     ClientStatusChangeEvent,
 } from './utils/socket/client/client-socket-manager-types';
@@ -18,8 +24,19 @@ export interface IElectronAPI {
     disconnectClient: () => void;
     getServerPort: () => Promise<number | undefined>;
     getServerStatus: () => Promise<ServerSocketManagerStatus>;
+    getServerClients: () => Promise<ServerClient[]>;
+    getServerSharedFolders: () => Promise<string[] | undefined>;
     getClientPeerUrl: () => Promise<string | undefined>;
     getClientStatus: () => Promise<ClientSocketManagerStatus>;
+    getClientSharedFiles: () => Promise<ClientServerSharedFile[]>;
+    getClientServerFilesPath: () => Promise<string>;
+    setClientServerFilesPath: (path: string) => void;
+    addSharedFolders: (folders: string[]) => void;
+    setSharedFolders: (folders: string[]) => void;
+    removeSharedFolder: (folder: string) => void;
+
+    pickFolders: () => Promise<string[] | undefined>;
+    getFilesPaths: (files: File[]) => Promise<string[]>;
 
     onServerStarted: (cb: (payload: ServerReadyEvent) => void) => void;
     offServerStarted: (cb: (payload: ServerReadyEvent) => void) => void;
@@ -31,6 +48,10 @@ export interface IElectronAPI {
     offServerMessage: (cb: (payload: string) => void) => void;
     onServerStatusChange: (cb: (payload: ServerStatusChangeEvent) => void) => void;
     offServerStatusChange: (cb: (payload: ServerStatusChangeEvent) => void) => void;
+    onServerClientsUpdate: (cb: (payload: ServerClientsUpdateEvent) => void) => void;
+    offServerClientsUpdate: (cb: (payload: ServerClientsUpdateEvent) => void) => void;
+    onServerSharedFilesUpdate: (cb: (payload: ServerSharedFoldersUpdatedEvent) => void) => void;
+    offServerSharedFilesUpdate: (cb: (payload: ServerSharedFoldersUpdatedEvent) => void) => void;
 
     onClientConnected: (cb: (payload: ClientConnectedEvent) => void) => void;
     offClientConnected: (cb: (payload: ClientConnectedEvent) => void) => void;
@@ -42,6 +63,10 @@ export interface IElectronAPI {
     offClientMessage: (cb: (payload: string) => void) => void;
     onClientStatusChange: (cb: (payload: ClientStatusChangeEvent) => void) => void;
     offClientStatusChange: (cb: (payload: ClientStatusChangeEvent) => void) => void;
+    onClientServerSharedFilesChange: (cb: (payload: ClientServerSharedFilesChangeEvent) => void) => void;
+    offClientServerSharedFilesChange: (cb: (payload: ClientServerSharedFilesChangeEvent) => void) => void;
+    onClientLoadingFileStatusChange: (cb: (payload: ClientLoadingFilesStatusChangeEvent) => void) => void;
+    offClientLoadingFileStatusChange: (cb: (payload: ClientLoadingFilesStatusChangeEvent) => void) => void;
 }
 
 declare global {

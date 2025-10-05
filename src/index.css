@@ -17,16 +17,13 @@
 :root {
     --default-font: 'SUSE Mono';
     --accent-font: 'Audiowide';
-    --background-color: var(--color-background);
-    --background-lighter-color: #202020;
-    --background-darker-color: #121212;
-    --background-darkest-color: #101010;
 }
 
 * {
     box-sizing: border-box;
     padding: 0;
     margin: 0;
+    user-select: none;
 }
 
 body {
@@ -35,4 +32,21 @@ body {
     overflow-x: hidden;
     font-size: 1rem;
     overflow-y: hidden;
+}
+
+.defaultBorder {
+    border: 1px solid var(--color-background-lighter);
+    border-radius: var(--radius-1);
+}
+
+.lightBackground {
+    background-color: var(--color-background-lighter);
+}
+
+.darkerBackground {
+    background-color: var(--color-background-darker);
+}
+
+.darkestBackground {
+    background-color: var(--color-background-darkest);
 }

@@ -1,13 +1,12 @@
 
 .titleBar {
-    background-color: var(--background-darkest-color);
     -webkit-app-region: drag;
+}
 
-    .logo {
-        padding: 0.5rem;
-        height: 100%;
-        width: auto;
-    }
+.logo {
+    padding: 0.5rem;
+    height: 100%;
+    width: auto;
 }
 
 .mainContainer {

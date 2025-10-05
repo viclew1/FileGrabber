@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import ServerSocketManager from './utils/socket/server/server-socket-manager';
@@ -86,17 +86,43 @@ ipcMain.handle('client:connect', (_event, peerUrl: string) => ClientSocketManage
 ipcMain.handle('client:disconnect', () => ClientSocketManager.disconnect());
 ipcMain.handle('client:getPeerUrl', () => ClientSocketManager.getPeerUrl());
 ipcMain.handle('client:getStatus', () => ClientSocketManager.getClientStatus());
+ipcMain.handle('client:getSharedFiles', () => ClientSocketManager.getServerSharedFiles());
+ipcMain.handle('client:getServerFilesPath', () => ClientSocketManager.getServerFilesPath());
+ipcMain.handle('client:setServerFilesPath', (_event, path: string) => ClientSocketManager.setServerFilesPath(path));
 ipcMain.handle('server:getPort', () => ServerSocketManager.getPort());
 ipcMain.handle('server:getStatus', () => ServerSocketManager.getServerStatus());
+ipcMain.handle('server:getClients', () => ServerSocketManager.getClients());
+ipcMain.handle('server:getSharedFolders', () => ServerSocketManager.getSharedFolders());
+ipcMain.handle('server:addSharedFolders', (_event, folders: string[]) => ServerSocketManager.addSharedFolders(folders));
+ipcMain.handle('server:setSharedFolders', (_event, folders: string[]) => ServerSocketManager.setSharedFolders(folders));
+ipcMain.handle('server:removeSharedFolder', (_event, folder: string) => ServerSocketManager.removeSharedFolder(folder));
+
+ipcMain.handle('pickFolders', async () => {
+    const result = await dialog.showOpenDialog({
+        properties: ['openDirectory'],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return undefined;
+    return result.filePaths;
+});
+ipcMain.handle('getFilesPaths', (_event, files: File[]) => files.map((file) => file.path));
 
 ServerSocketManager.on('started', (payload) => mainWindowRef?.webContents.send('server:started', payload))
     .on('stopped', (payload) => mainWindowRef?.webContents.send('server:stopped', payload))
     .on('crashed', (payload) => mainWindowRef?.webContents.send('server:crashed', payload))
     .on('message', (payload) => mainWindowRef?.webContents.send('server:message', payload))
-    .on('statusChange', (payload) => mainWindowRef?.webContents.send('server:statusChange', payload));
+    .on('statusChange', (payload) => mainWindowRef?.webContents.send('server:statusChange', payload))
+    .on('clientsUpdate', (payload) => mainWindowRef?.webContents.send('server:clientsUpdate', payload))
+    .on('sharedFoldersUpdate', (payload) => mainWindowRef?.webContents.send('server:sharedFoldersUpdate', payload));
 
 ClientSocketManager.on('connected', (payload) => mainWindowRef?.webContents.send('client:connected', payload))
     .on('disconnected', (payload) => mainWindowRef?.webContents.send('client:disconnected', payload))
     .on('connectionFailure', (payload) => mainWindowRef?.webContents.send('client:connectionFailure', payload))
     .on('message', (payload) => mainWindowRef?.webContents.send('client:message', payload))
-    .on('statusChange', (payload) => mainWindowRef?.webContents.send('client:statusChange', payload));
+    .on('statusChange', (payload) => mainWindowRef?.webContents.send('client:statusChange', payload))
+    .on('serverSharedFilesChange', (payload) =>
+        mainWindowRef?.webContents.send('client:serverSharedFilesChange', payload)
+    )
+    .on('loadingFileStatusChange', (payload) =>
+        mainWindowRef?.webContents.send('client:loadingFileStatusChange', payload)
+    );

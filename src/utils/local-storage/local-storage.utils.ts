@@ -1,9 +1,7 @@
 export type LocalStorageKeys = {
-    metamobName: string;
-    metamobApiKey: string;
-    metamobUniqueId: string;
-    monsterSort: string;
-    ocreAmount: number;
+    peerUrl: string;
+    serverPort: string;
+    sharedFolders: string[];
 };
 
 type LocalStorageItem = {
