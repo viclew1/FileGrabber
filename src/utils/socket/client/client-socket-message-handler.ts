@@ -18,6 +18,7 @@ export class ClientSocketMessageHandler extends SocketMessageHandler<
         return {
             READY: this.handleReadyMessage.bind(this),
             SEND_SHARED_FILES: this.handleSendSharedFilesMessage.bind(this),
+            SEND_FILE_CHUNK: this.handleFileChunk.bind(this),
         };
     }
 
@@ -27,5 +28,9 @@ export class ClientSocketMessageHandler extends SocketMessageHandler<
 
     private handleSendSharedFilesMessage(payload: { sharedFiles: ClientServerSharedFile[] }) {
         ClientSocketManager.setServerSharedFiles(payload.sharedFiles);
+    }
+
+    private handleFileChunk(payload: { fileName: string; chunkBase64: string; isLast: boolean; totalBytes: number }) {
+        ClientSocketManager.onFileChunk(payload.fileName, payload.chunkBase64, payload.isLast, payload.totalBytes);
     }
 }

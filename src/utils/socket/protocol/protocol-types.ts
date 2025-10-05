@@ -7,9 +7,11 @@ export type Message<MESSAGE_TYPES> = {
 
 export type ClientToServerMessageTypes = {
     GET_SERVER_SHARED_FILES: { path: string };
+    DOWNLOAD_FILE: { path: string; fileName: string };
 };
 
 export type ServerToClientMessageTypes = {
     READY: undefined;
     SEND_SHARED_FILES: { sharedFiles: ClientServerSharedFile[] };
+    SEND_FILE_CHUNK: { fileName: string; chunkBase64: string; isLast: boolean; totalBytes: number };
 };

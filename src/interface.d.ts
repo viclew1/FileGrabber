@@ -15,6 +15,7 @@ import {
     ClientServerSharedFilesChangeEvent,
     ClientSocketManagerStatus,
     ClientStatusChangeEvent,
+    ClientDownloadProgressEvent,
 } from './utils/socket/client/client-socket-manager-types';
 
 export interface IElectronAPI {
@@ -31,6 +32,7 @@ export interface IElectronAPI {
     getClientSharedFiles: () => Promise<ClientServerSharedFile[]>;
     getClientServerFilesPath: () => Promise<string>;
     setClientServerFilesPath: (path: string) => void;
+    downloadFile: (fileName: string) => Promise<boolean>;
     addSharedFolders: (folders: string[]) => void;
     setSharedFolders: (folders: string[]) => void;
     removeSharedFolder: (folder: string) => void;
@@ -67,6 +69,8 @@ export interface IElectronAPI {
     offClientServerSharedFilesChange: (cb: (payload: ClientServerSharedFilesChangeEvent) => void) => void;
     onClientLoadingFileStatusChange: (cb: (payload: ClientLoadingFilesStatusChangeEvent) => void) => void;
     offClientLoadingFileStatusChange: (cb: (payload: ClientLoadingFilesStatusChangeEvent) => void) => void;
+    onClientDownloadProgress: (cb: (payload: ClientDownloadProgressEvent) => void) => void;
+    offClientDownloadProgress: (cb: (payload: ClientDownloadProgressEvent) => void) => void;
 }
 
 declare global {

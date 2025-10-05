@@ -39,6 +39,10 @@ body {
     border-radius: var(--radius-1);
 }
 
+.defaultBackground {
+    background-color: var(--color-background);
+}
+
 .lightBackground {
     background-color: var(--color-background-lighter);
 }

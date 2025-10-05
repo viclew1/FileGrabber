@@ -7,6 +7,7 @@ import {
     ClientServerSharedFilesChangeEvent,
     ClientSocketManagerStatus,
     ClientStatusChangeEvent,
+    ClientDownloadProgressEvent,
 } from '../utils/socket/client/client-socket-manager-types';
 import { getLocalStorageItem, setLocalStorageItem } from '../utils/local-storage/local-storage.utils';
 
@@ -16,6 +17,8 @@ type SocketClientContextType = {
     status: ClientSocketManagerStatus;
     sharedFiles: ClientServerSharedFile[];
     filesPath: string;
+    downloads: ClientDownloadProgressEvent[];
+    downloadFile: (fileName: string) => void;
     changeFilesPath: (newPath: string) => void;
     connect: () => void;
     disconnect: () => void;
@@ -34,6 +37,7 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
     const [status, setStatus] = useState<ClientSocketManagerStatus>('disconnected');
     const [sharedFiles, setSharedFiles] = useState<ClientServerSharedFile[]>([]);
     const [filesPath, setFilesPath] = useState<string>('/');
+    const [downloadsByFile, setDownloadsByFile] = useState<Record<string, ClientDownloadProgressEvent>>({});
 
     useEffect(() => {
         const api = window.electronAPI;
@@ -50,6 +54,7 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
             setSharedFiles(sharedFiles);
             setFilesPath(filesPath);
             setIsLoading(false);
+            setIsFilesLoading(false);
         })();
 
         const onConnected = (event: ClientConnectedEvent) => {
@@ -75,18 +80,39 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
             setFilesPath(event.path);
         };
 
+        const onDownloadProgress = (event: ClientDownloadProgressEvent) => {
+            setDownloadsByFile((prev) => {
+                const next = { ...prev };
+                const completed = event.progress >= 1 || (event.totalBytes > 0 && event.receivedBytes >= event.totalBytes);
+                if (completed) {
+                    delete next[event.fileName];
+                } else {
+                    next[event.fileName] = event;
+                }
+                return next;
+            });
+        };
+
+        const onDisconnected = () => {
+            setDownloadsByFile({});
+        };
+
         api.onClientConnected(onConnected);
+        api.onClientDisconnected(onDisconnected);
         api.onClientConnectionFailure(onConnectionFailure);
         api.onClientStatusChange(onStatusChange);
         api.onClientLoadingFileStatusChange(onLoadingFileStatusChange);
         api.onClientServerSharedFilesChange(onServerSharedFilesChange);
+        api.onClientDownloadProgress(onDownloadProgress);
 
         return () => {
             api.offClientConnected(onConnected);
+            api.offClientDisconnected(onDisconnected);
             api.offClientConnectionFailure(onConnectionFailure);
             api.offClientStatusChange(onStatusChange);
             api.offClientLoadingFileStatusChange(onLoadingFileStatusChange);
             api.offClientServerSharedFilesChange(onServerSharedFilesChange);
+            api.offClientDownloadProgress(onDownloadProgress);
         };
     }, []);
 
@@ -102,6 +128,10 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
                 isFilesLoading,
                 sharedFiles,
                 filesPath,
+                downloads: Object.values(downloadsByFile),
+                downloadFile: async (fileName: string) => {
+                    await window.electronAPI.downloadFile(fileName);
+                },
                 changeFilesPath: (newPath: string) => {
                     setIsFilesLoading(true);
                     window.electronAPI.setClientServerFilesPath(newPath.replaceAll('//', '/'));

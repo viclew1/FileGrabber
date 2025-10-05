@@ -18,6 +18,13 @@ export type ClientServerSharedFilesChangeEvent = {
     sharedFiles: ClientServerSharedFile[];
 };
 
+export type ClientDownloadProgressEvent = {
+    fileName: string;
+    receivedBytes: number;
+    totalBytes: number;
+    progress: number; // 0..1
+};
+
 export type ClientEventPayloads = {
     connected: ClientConnectedEvent;
     disconnected: undefined;
@@ -26,4 +33,5 @@ export type ClientEventPayloads = {
     statusChange: ClientStatusChangeEvent;
     loadingFileStatusChange: ClientLoadingFilesStatusChangeEvent;
     serverSharedFilesChange: ClientServerSharedFilesChangeEvent;
+    downloadProgress: ClientDownloadProgressEvent;
 };

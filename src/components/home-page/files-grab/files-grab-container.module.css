@@ -1,0 +1,7 @@
+.scrollAreaFix {
+    & div {
+        & div {
+            width: unset !important;
+        }
+    }
+}

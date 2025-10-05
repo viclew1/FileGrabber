@@ -89,6 +89,25 @@ ipcMain.handle('client:getStatus', () => ClientSocketManager.getClientStatus());
 ipcMain.handle('client:getSharedFiles', () => ClientSocketManager.getServerSharedFiles());
 ipcMain.handle('client:getServerFilesPath', () => ClientSocketManager.getServerFilesPath());
 ipcMain.handle('client:setServerFilesPath', (_event, path: string) => ClientSocketManager.setServerFilesPath(path));
+ipcMain.handle('client:downloadFile', async (_event, fileName: string) => {
+    const ext = path.extname(fileName);
+    const options: Electron.SaveDialogOptions = { defaultPath: fileName } as any;
+    if (ext) {
+        const extNoDot = ext.slice(1);
+        options.filters = [
+            { name: `${extNoDot.toUpperCase()} files`, extensions: [extNoDot] },
+            { name: 'All Files', extensions: ['*'] },
+        ];
+    }
+    const result = await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) return false;
+    let savePath = result.filePath;
+    if (ext && !savePath.toLowerCase().endsWith(ext.toLowerCase())) {
+        savePath += ext;
+    }
+    ClientSocketManager.startDownload(fileName, savePath);
+    return true;
+});
 ipcMain.handle('server:getPort', () => ServerSocketManager.getPort());
 ipcMain.handle('server:getStatus', () => ServerSocketManager.getServerStatus());
 ipcMain.handle('server:getClients', () => ServerSocketManager.getClients());
@@ -121,8 +140,9 @@ ClientSocketManager.on('connected', (payload) => mainWindowRef?.webContents.send
     .on('message', (payload) => mainWindowRef?.webContents.send('client:message', payload))
     .on('statusChange', (payload) => mainWindowRef?.webContents.send('client:statusChange', payload))
     .on('serverSharedFilesChange', (payload) =>
-        mainWindowRef?.webContents.send('client:serverSharedFilesChange', payload)
+        mainWindowRef?.webContents.send('client:serverSharedFilesChange', payload),
     )
     .on('loadingFileStatusChange', (payload) =>
-        mainWindowRef?.webContents.send('client:loadingFileStatusChange', payload)
-    );
+        mainWindowRef?.webContents.send('client:loadingFileStatusChange', payload),
+    )
+    .on('downloadProgress', (payload) => mainWindowRef?.webContents.send('client:downloadProgress', payload));

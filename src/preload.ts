@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getClientSharedFiles: () => ipcRenderer.invoke('client:getSharedFiles'),
     getClientServerFilesPath: () => ipcRenderer.invoke('client:getServerFilesPath'),
     setClientServerFilesPath: (path: string) => ipcRenderer.invoke('client:setServerFilesPath', path),
+    downloadFile: (fileName: string) => ipcRenderer.invoke('client:downloadFile', fileName),
     addSharedFolders: (folders: string[]) => ipcRenderer.invoke('server:addSharedFolders', folders),
     setSharedFolders: (folders: string[]) => ipcRenderer.invoke('server:setSharedFolders', folders),
     removeSharedFolder: (folder: string) => ipcRenderer.invoke('server:removeSharedFolder', folder),
@@ -43,6 +44,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('client:serverSharedFilesChange', (_e, p) => cb(p)),
     onClientLoadingFileStatusChange: (cb: (payload: any) => void) =>
         ipcRenderer.on('client:loadingFileStatusChange', (_e, p) => cb(p)),
+    onClientDownloadProgress: (cb: (payload: any) => void) =>
+        ipcRenderer.on('client:downloadProgress', (_e, p) => cb(p)),
 
     offServerStarted: (cb: (...args: any[]) => void) => ipcRenderer.off('server:started', cb as any),
     offServerStopped: (cb: (...args: any[]) => void) => ipcRenderer.off('server:stopped', cb as any),
@@ -63,4 +66,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.off('client:serverSharedFilesChange', cb as any),
     offClientLoadingFileStatusChange: (cb: (...args: any[]) => void) =>
         ipcRenderer.off('client:loadingFileStatusChange', cb as any),
+    offClientDownloadProgress: (cb: (...args: any[]) => void) =>
+        ipcRenderer.off('client:downloadProgress', cb as any),
 });

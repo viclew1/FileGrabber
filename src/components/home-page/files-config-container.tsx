@@ -1,17 +1,19 @@
-import { ReactNode } from 'react';
 import VerticalFlex from '../custom/base/flex/vertical-flex';
-import { Separator } from '@radix-ui/themes';
+import { FlexProps, Separator } from '@radix-ui/themes';
 import Title from '../custom/base/text/title';
 import classNames from 'classnames';
 
-export default function FilesConfigContainer({ title, children }: { title: string; children: ReactNode }) {
+export default function FilesConfigContainer({ title, className, children, ...props }: { title: string } & FlexProps) {
     return (
         <VerticalFlex
             gap={'4'}
             p={'4'}
             width={'100%'}
             height={'100%'}
-            className={classNames('darkerBackground', 'defaultBorder')}
+            minWidth={'0'}
+            minHeight={'0'}
+            className={classNames('darkerBackground', 'defaultBorder', className)}
+            {...props}
         >
             <Title>{title}</Title>
             <Separator orientation={'horizontal'} size={'4'} />

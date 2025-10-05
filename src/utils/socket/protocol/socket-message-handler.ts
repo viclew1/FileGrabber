@@ -16,12 +16,10 @@ export abstract class SocketMessageHandler<RECEIVED_MESSAGE_TYPES, SENT_MESSAGE_
     };
 
     public onMessageReceived(message: Message<RECEIVED_MESSAGE_TYPES>) {
-        console.log('Received message:', message.type);
         this.messageHandlers[message.type](message.payload);
     }
 
     sendMessage(message: Message<SENT_MESSAGE_TYPES>) {
-        console.log('Sending message:', message.type);
         this.socket.emit('message', message);
     }
 }

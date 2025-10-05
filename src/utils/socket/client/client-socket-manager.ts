@@ -3,6 +3,7 @@ import { ClientEventPayloads, ClientServerSharedFile, ClientSocketManagerStatus 
 import { Listenable } from '../../listenable';
 import { normalizePeerUrl } from './client-socket-manager.utils';
 import { ClientSocketMessageHandler } from './client-socket-message-handler';
+import * as fs from 'node:fs';
 
 class ClientSocketManager extends Listenable<ClientEventPayloads> {
     private socket?: Socket;
@@ -11,6 +12,8 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
     private peerUrl?: string;
     private serverSharedFiles: ClientServerSharedFile[] = [];
     private serverFilesPath = '/';
+    private downloadStreams: Map<string, fs.WriteStream> = new Map();
+    private downloadReceivedBytes: Map<string, number> = new Map();
 
     constructor() {
         super({
@@ -21,6 +24,7 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
             statusChange: [],
             loadingFileStatusChange: [],
             serverSharedFilesChange: [],
+            downloadProgress: [],
         });
         this.on('statusChange', (e) => (this.clientStatus = e.status));
     }
@@ -114,10 +118,18 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
         this.peerUrl = undefined;
         this.socket = undefined;
         this.socketHandler = undefined;
+        // close any ongoing downloads
+        for (const [, s] of this.downloadStreams) {
+            try {
+                s.close();
+            } catch {}
+        }
+        this.downloadStreams.clear();
         this.serverSharedFiles = [];
         this.emit('disconnected', undefined);
         this.emit('statusChange', { status: 'disconnected' });
         this.emitServerSharedFilesUpdate();
+        this.emit('loadingFileStatusChange', { loadingFiles: false });
     }
 
     private onConnectionFailure(peerUrl: string, error: unknown) {
@@ -127,6 +139,41 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
         this.socketHandler = undefined;
         this.emit('connectionFailure', { error });
         this.emit('statusChange', { status: 'connectionFailure' });
+    }
+
+    startDownload(fileName: string, savePath: string) {
+        if (!this.socketHandler) return;
+        this.downloadStreams.get(fileName)?.close();
+        const stream = fs.createWriteStream(savePath);
+        this.downloadStreams.set(fileName, stream);
+        this.downloadReceivedBytes.set(fileName, 0);
+        this.emit('downloadProgress', { fileName, receivedBytes: 0, totalBytes: 0, progress: 0 });
+        this.socketHandler.sendMessage({
+            type: 'DOWNLOAD_FILE',
+            payload: { path: this.serverFilesPath, fileName },
+        });
+    }
+
+    onFileChunk(fileName: string, chunkBase64: string, isLast: boolean, totalBytes: number) {
+        const stream = this.downloadStreams.get(fileName);
+        if (!stream) return;
+        let received = this.downloadReceivedBytes.get(fileName) ?? 0;
+        if (chunkBase64) {
+            const buf = Buffer.from(chunkBase64, 'base64');
+            stream.write(buf);
+            received += buf.length;
+            this.downloadReceivedBytes.set(fileName, received);
+        }
+        const progress = totalBytes > 0 ? Math.min(1, received / totalBytes) : 0;
+        this.emit('downloadProgress', { fileName, receivedBytes: received, totalBytes, progress });
+        if (isLast) {
+            stream.close();
+            this.downloadStreams.delete(fileName);
+            this.downloadReceivedBytes.delete(fileName);
+            if (totalBytes > 0 && received < totalBytes) {
+                this.emit('downloadProgress', { fileName, receivedBytes: totalBytes, totalBytes, progress: 1 });
+            }
+        }
     }
 }
 

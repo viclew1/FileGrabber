@@ -16,6 +16,7 @@ export class ServerSocketMessageHandler extends SocketMessageHandler<
     } {
         return {
             GET_SERVER_SHARED_FILES: this.handleGetServerSharedFilesMessage.bind(this),
+            DOWNLOAD_FILE: this.handleDownloadFileMessage.bind(this),
         };
     }
 
@@ -23,6 +24,39 @@ export class ServerSocketMessageHandler extends SocketMessageHandler<
         this.sendMessage({
             type: 'SEND_SHARED_FILES',
             payload: { sharedFiles: ServerSocketManager.getSharedFiles(payload.path) },
+        });
+    }
+
+    private handleDownloadFileMessage(payload: { path: string; fileName: string }) {
+        const absolutePath = ServerSocketManager.resolveFileAbsolutePath(payload.path, payload.fileName);
+        if (!absolutePath) {
+            this.sendMessage({
+                type: 'SEND_FILE_CHUNK',
+                payload: { fileName: payload.fileName, chunkBase64: '', isLast: true, totalBytes: 0 },
+            });
+            return;
+        }
+        const fs = require('node:fs');
+        const totalBytes = fs.lstatSync(absolutePath).size;
+        const stream = fs.createReadStream(absolutePath);
+        stream.on('data', (chunk: Buffer) => {
+            const chunkBase64 = chunk.toString('base64');
+            this.sendMessage({
+                type: 'SEND_FILE_CHUNK',
+                payload: { fileName: payload.fileName, chunkBase64, isLast: false, totalBytes },
+            });
+        });
+        stream.on('end', () => {
+            this.sendMessage({
+                type: 'SEND_FILE_CHUNK',
+                payload: { fileName: payload.fileName, chunkBase64: '', isLast: true, totalBytes },
+            });
+        });
+        stream.on('error', () => {
+            this.sendMessage({
+                type: 'SEND_FILE_CHUNK',
+                payload: { fileName: payload.fileName, chunkBase64: '', isLast: true, totalBytes },
+            });
         });
     }
 }

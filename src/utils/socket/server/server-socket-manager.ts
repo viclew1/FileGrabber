@@ -140,11 +140,8 @@ class ServerSocketManager extends Listenable<ServerEventPayloads> {
                 type: 'folder',
             }));
         }
-        const pathSegments = filesPath.split('/').filter((segment) => segment !== '');
-        const baseSharedFolder = this.getSharedFolders().find((folder) => folder.fileName === pathSegments[0]);
-        if (!baseSharedFolder) return [];
-        pathSegments.splice(0, 1);
-        const absolutePath = baseSharedFolder.absolutePath + '/' + pathSegments.join('/');
+        const absolutePath = this.resolveDirAbsolutePath(filesPath);
+        if (!absolutePath) return [];
         return fs.readdirSync(absolutePath).map((fileName) => {
             const fileAbsolutePath = absolutePath + '/' + fileName;
             const lstat = fs.lstatSync(fileAbsolutePath);
@@ -153,6 +150,25 @@ class ServerSocketManager extends Listenable<ServerEventPayloads> {
                 type: lstat.isDirectory() ? 'folder' : 'file',
             };
         });
+    }
+
+    resolveFileAbsolutePath(filesPath: string, fileName: string): string | undefined {
+        const dirAbsolutePath = this.resolveDirAbsolutePath(filesPath);
+        if (!dirAbsolutePath) return undefined;
+        const targetPath = dirAbsolutePath + '/' + fileName;
+        if (!fs.existsSync(targetPath)) return undefined;
+        const stat = fs.lstatSync(targetPath);
+        if (stat.isDirectory()) return undefined;
+        return targetPath;
+    }
+
+    private resolveDirAbsolutePath(filesPath: string): string | undefined {
+        if (filesPath === '/' || filesPath === '') return undefined;
+        const pathSegments = filesPath.split('/').filter((segment) => segment !== '');
+        const baseSharedFolder = this.getSharedFolders().find((folder) => folder.fileName === pathSegments[0]);
+        if (!baseSharedFolder) return undefined;
+        pathSegments.splice(0, 1);
+        return baseSharedFolder.absolutePath + '/' + pathSegments.join('/');
     }
 
     addSharedFolders(foldersPaths: string[]) {
