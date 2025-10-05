@@ -81,7 +81,7 @@ function DownloadsBar() {
             minHeight={'0'}
             flexShrink={'0'}
             height={'fit-content'}
-            maxHeight={'10rem'}
+            maxHeight={'15rem'}
         >
             <SmallTitle>Downloads</SmallTitle>
             <ScrollArea type={'always'} scrollbars={'vertical'}>
