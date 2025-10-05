@@ -12,7 +12,7 @@ import { ACCENT_11 } from '../../../app_constants';
 
 export default function FilesGrabContainer() {
     return (
-        <VerticalFlex gap={'3'}>
+        <VerticalFlex gap={'3'} width={'100%'} height={'100%'} minWidth={'0'} minHeight={'0'}>
             <FilesConfigContainer title={'Client config'}>
                 <FilesGrabHeader />
                 <MainContent />
