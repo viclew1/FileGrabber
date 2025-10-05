@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('client:loadingFileStatusChange', (_e, p) => cb(p)),
     onClientDownloadProgress: (cb: (payload: any) => void) =>
         ipcRenderer.on('client:downloadProgress', (_e, p) => cb(p)),
+    onClientDownloadSuccess: (cb: (payload: any) => void) =>
+        ipcRenderer.on('client:downloadSuccess', (_e, p) => cb(p)),
 
     offServerStarted: (cb: (...args: any[]) => void) => ipcRenderer.off('server:started', cb as any),
     offServerStopped: (cb: (...args: any[]) => void) => ipcRenderer.off('server:stopped', cb as any),
@@ -68,4 +70,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.off('client:loadingFileStatusChange', cb as any),
     offClientDownloadProgress: (cb: (...args: any[]) => void) =>
         ipcRenderer.off('client:downloadProgress', cb as any),
+    offClientDownloadSuccess: (cb: (...args: any[]) => void) =>
+        ipcRenderer.off('client:downloadSuccess', cb as any),
 });

@@ -145,4 +145,5 @@ ClientSocketManager.on('connected', (payload) => mainWindowRef?.webContents.send
     .on('loadingFileStatusChange', (payload) =>
         mainWindowRef?.webContents.send('client:loadingFileStatusChange', payload),
     )
-    .on('downloadProgress', (payload) => mainWindowRef?.webContents.send('client:downloadProgress', payload));
+    .on('downloadProgress', (payload) => mainWindowRef?.webContents.send('client:downloadProgress', payload))
+    .on('downloadSuccess', (payload) => mainWindowRef?.webContents.send('client:downloadSuccess', payload));

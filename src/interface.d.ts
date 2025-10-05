@@ -16,6 +16,7 @@ import {
     ClientSocketManagerStatus,
     ClientStatusChangeEvent,
     ClientDownloadProgressEvent,
+    ClientDownloadSuccessEvent,
 } from './utils/socket/client/client-socket-manager-types';
 
 export interface IElectronAPI {
@@ -71,6 +72,8 @@ export interface IElectronAPI {
     offClientLoadingFileStatusChange: (cb: (payload: ClientLoadingFilesStatusChangeEvent) => void) => void;
     onClientDownloadProgress: (cb: (payload: ClientDownloadProgressEvent) => void) => void;
     offClientDownloadProgress: (cb: (payload: ClientDownloadProgressEvent) => void) => void;
+    onClientDownloadSuccess: (cb: (payload: ClientDownloadSuccessEvent) => void) => void;
+    offClientDownloadSuccess: (cb: (payload: ClientDownloadSuccessEvent) => void) => void;
 }
 
 declare global {

@@ -38,7 +38,27 @@ export class ServerSocketMessageHandler extends SocketMessageHandler<
         }
         const fs = require('node:fs');
         const totalBytes = fs.lstatSync(absolutePath).size;
-        const stream: import('node:fs').ReadStream = fs.createReadStream(absolutePath, { highWaterMark: 64 * 1024 });
+
+        // If the whole file fits into a single chunk, send it as the last (and only) packet
+        const HIGH_WATER_MARK = 64 * 1024;
+        if (totalBytes <= HIGH_WATER_MARK) {
+            try {
+                const data: Buffer = fs.readFileSync(absolutePath);
+                const chunkBase64 = data.toString('base64');
+                this.sendMessage({
+                    type: 'SEND_FILE_CHUNK',
+                    payload: { fileName: payload.fileName, chunkBase64, isLast: true, totalBytes },
+                });
+            } catch {
+                this.sendMessage({
+                    type: 'SEND_FILE_CHUNK',
+                    payload: { fileName: payload.fileName, chunkBase64: '', isLast: true, totalBytes: 0 },
+                });
+            }
+            return;
+        }
+
+        const stream: import('node:fs').ReadStream = fs.createReadStream(absolutePath, { highWaterMark: HIGH_WATER_MARK });
 
         let ended = false;
         let errored = false;
@@ -68,22 +88,19 @@ export class ServerSocketMessageHandler extends SocketMessageHandler<
                 return;
             }
             const chunkBase64 = chunk.toString('base64');
-            // Send one chunk and wait for client ACK before proceeding
             this.sendMessage(
                 {
                     type: 'SEND_FILE_CHUNK',
                     payload: { fileName: payload.fileName, chunkBase64, isLast: false, totalBytes },
                 },
                 () => {
-                    // schedule next read after ack to yield event loop
                     setImmediate(sendNext);
-                }
+                },
             );
         };
 
         stream.on('end', () => {
             ended = true;
-            // If waiting for readable, sendNext will handle finalization
         });
         stream.on('error', () => {
             errored = true;
@@ -91,7 +108,6 @@ export class ServerSocketMessageHandler extends SocketMessageHandler<
             sendFinal();
         });
 
-        // Start in paused mode; no 'data' listener, so we manually pull
         sendNext();
     }
 }

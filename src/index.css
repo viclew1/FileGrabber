@@ -54,3 +54,10 @@ body {
 .darkestBackground {
     background-color: var(--color-background-darkest);
 }
+
+.defaultToast {
+    background-color: var(--color-background-darkest);
+    border: 1px solid var(--color-background-lighter);
+    border-radius: var(--radius-1);
+    color: white;
+}

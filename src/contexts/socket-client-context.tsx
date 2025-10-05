@@ -2,14 +2,16 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
     ClientConnectedEvent,
     ClientConnectionFailureEvent,
+    ClientDownloadProgressEvent,
+    ClientDownloadSuccessEvent,
     ClientLoadingFilesStatusChangeEvent,
     ClientServerSharedFile,
     ClientServerSharedFilesChangeEvent,
     ClientSocketManagerStatus,
     ClientStatusChangeEvent,
-    ClientDownloadProgressEvent,
 } from '../utils/socket/client/client-socket-manager-types';
 import { getLocalStorageItem, setLocalStorageItem } from '../utils/local-storage/local-storage.utils';
+import toast from 'react-hot-toast';
 
 type SocketClientContextType = {
     peerUrlText: string;
@@ -83,12 +85,17 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
         const onDownloadProgress = (event: ClientDownloadProgressEvent) => {
             setDownloadsByFile((prev) => {
                 const next = { ...prev };
-                const completed = event.progress >= 1 || (event.totalBytes > 0 && event.receivedBytes >= event.totalBytes);
-                if (completed) {
-                    delete next[event.fileName];
-                } else {
-                    next[event.fileName] = event;
-                }
+                next[event.fileName] = event;
+                return next;
+            });
+        };
+
+        const onDownloadSuccess = (event: ClientDownloadSuccessEvent) => {
+            console.log('Download success:', event);
+            toast.success(`Download OK - ${event.fileName}`);
+            setDownloadsByFile((prev) => {
+                const next = { ...prev };
+                delete next[event.fileName];
                 return next;
             });
         };
@@ -104,6 +111,7 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
         api.onClientLoadingFileStatusChange(onLoadingFileStatusChange);
         api.onClientServerSharedFilesChange(onServerSharedFilesChange);
         api.onClientDownloadProgress(onDownloadProgress);
+        api.onClientDownloadSuccess(onDownloadSuccess);
 
         return () => {
             api.offClientConnected(onConnected);
@@ -113,6 +121,7 @@ export function SocketClientProvider({ children }: { children: React.ReactNode }
             api.offClientLoadingFileStatusChange(onLoadingFileStatusChange);
             api.offClientServerSharedFilesChange(onServerSharedFilesChange);
             api.offClientDownloadProgress(onDownloadProgress);
+            api.offClientDownloadSuccess(onDownloadSuccess);
         };
     }, []);
 

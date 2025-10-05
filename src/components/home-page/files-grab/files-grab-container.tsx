@@ -83,7 +83,7 @@ function DownloadsBar() {
             height={'fit-content'}
             maxHeight={'15rem'}
         >
-            <SmallTitle>Downloads</SmallTitle>
+            <SmallTitle>Downloads ({downloads.length})</SmallTitle>
             <ScrollArea type={'always'} scrollbars={'vertical'}>
                 <VerticalFlex gap={'2'} pr={'5'}>
                     {downloads.map((d) => (

@@ -25,6 +25,7 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
             loadingFileStatusChange: [],
             serverSharedFilesChange: [],
             downloadProgress: [],
+            downloadSuccess: [],
         });
         this.on('statusChange', (e) => (this.clientStatus = e.status));
     }
@@ -167,12 +168,10 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
         const progress = totalBytes > 0 ? Math.min(1, received / totalBytes) : 0;
         this.emit('downloadProgress', { fileName, receivedBytes: received, totalBytes, progress });
         if (isLast) {
+            this.emit('downloadSuccess', { fileName });
             stream.close();
             this.downloadStreams.delete(fileName);
             this.downloadReceivedBytes.delete(fileName);
-            if (totalBytes > 0 && received < totalBytes) {
-                this.emit('downloadProgress', { fileName, receivedBytes: totalBytes, totalBytes, progress: 1 });
-            }
         }
     }
 }

@@ -25,6 +25,8 @@ export type ClientDownloadProgressEvent = {
     progress: number; // 0..1
 };
 
+export type ClientDownloadSuccessEvent = { fileName: string };
+
 export type ClientEventPayloads = {
     connected: ClientConnectedEvent;
     disconnected: undefined;
@@ -34,4 +36,5 @@ export type ClientEventPayloads = {
     loadingFileStatusChange: ClientLoadingFilesStatusChangeEvent;
     serverSharedFilesChange: ClientServerSharedFilesChangeEvent;
     downloadProgress: ClientDownloadProgressEvent;
+    downloadSuccess: ClientDownloadSuccessEvent;
 };
