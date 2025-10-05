@@ -47,7 +47,7 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
             this.socket.on('connect_error', (error) => this.onConnectionFailure(peerUrl, error));
             this.socket.on('connect', () => this.onConnectionSuccess(peerUrl));
             this.socket.on('disconnect', () => this.onDisconnection());
-            this.socket.on('message', (msg) => this.socketHandler?.onMessageReceived(msg));
+            this.socket.on('message', (msg, ack) => this.socketHandler?.onMessageReceived(msg, ack));
 
             this.socket.connect();
         } catch (error) {

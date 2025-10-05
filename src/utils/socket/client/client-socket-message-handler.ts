@@ -13,7 +13,7 @@ export class ClientSocketMessageHandler extends SocketMessageHandler<
     }
 
     protected initMessageHandlers(): {
-        [K in keyof ServerToClientMessageTypes]: (payload: ServerToClientMessageTypes[K]) => void;
+        [K in keyof ServerToClientMessageTypes]: (payload: ServerToClientMessageTypes[K], ack?: () => void) => void;
     } {
         return {
             READY: this.handleReadyMessage.bind(this),
@@ -30,7 +30,8 @@ export class ClientSocketMessageHandler extends SocketMessageHandler<
         ClientSocketManager.setServerSharedFiles(payload.sharedFiles);
     }
 
-    private handleFileChunk(payload: { fileName: string; chunkBase64: string; isLast: boolean; totalBytes: number }) {
+    private handleFileChunk(payload: { fileName: string; chunkBase64: string; isLast: boolean; totalBytes: number }, ack?: () => void) {
         ClientSocketManager.onFileChunk(payload.fileName, payload.chunkBase64, payload.isLast, payload.totalBytes);
+        if (ack) ack();
     }
 }

@@ -51,7 +51,7 @@ class ServerSocketManager extends Listenable<ServerEventPayloads> {
                 };
                 this.onClientConnected(client);
 
-                socket.on('message', (msg) => messageHandler.onMessageReceived(msg));
+                socket.on('message', (msg, ack) => messageHandler.onMessageReceived(msg, ack));
                 socket.on('disconnect', () => this.onClientDisconnected(client));
                 messageHandler.sendMessage({ type: 'READY', payload: undefined });
             });

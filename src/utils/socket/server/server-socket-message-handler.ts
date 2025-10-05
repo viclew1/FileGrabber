@@ -12,7 +12,7 @@ export class ServerSocketMessageHandler extends SocketMessageHandler<
     }
 
     protected initMessageHandlers(): {
-        [K in keyof ClientToServerMessageTypes]: (payload: ClientToServerMessageTypes[K]) => void;
+        [K in keyof ClientToServerMessageTypes]: (payload: ClientToServerMessageTypes[K], ack?: () => void) => void;
     } {
         return {
             GET_SERVER_SHARED_FILES: this.handleGetServerSharedFilesMessage.bind(this),
@@ -38,25 +38,60 @@ export class ServerSocketMessageHandler extends SocketMessageHandler<
         }
         const fs = require('node:fs');
         const totalBytes = fs.lstatSync(absolutePath).size;
-        const stream = fs.createReadStream(absolutePath);
-        stream.on('data', (chunk: Buffer) => {
-            const chunkBase64 = chunk.toString('base64');
-            this.sendMessage({
-                type: 'SEND_FILE_CHUNK',
-                payload: { fileName: payload.fileName, chunkBase64, isLast: false, totalBytes },
-            });
-        });
-        stream.on('end', () => {
+        const stream: import('node:fs').ReadStream = fs.createReadStream(absolutePath, { highWaterMark: 64 * 1024 });
+
+        let ended = false;
+        let errored = false;
+        const cleanup = () => {
+            stream.removeAllListeners('readable');
+            stream.removeAllListeners('end');
+            stream.removeAllListeners('error');
+        };
+
+        const sendFinal = () => {
             this.sendMessage({
                 type: 'SEND_FILE_CHUNK',
                 payload: { fileName: payload.fileName, chunkBase64: '', isLast: true, totalBytes },
             });
+        };
+
+        const sendNext = () => {
+            if (errored) return;
+            const chunk: Buffer | null = stream.read();
+            if (chunk === null) {
+                if (ended) {
+                    cleanup();
+                    sendFinal();
+                } else {
+                    stream.once('readable', sendNext);
+                }
+                return;
+            }
+            const chunkBase64 = chunk.toString('base64');
+            // Send one chunk and wait for client ACK before proceeding
+            this.sendMessage(
+                {
+                    type: 'SEND_FILE_CHUNK',
+                    payload: { fileName: payload.fileName, chunkBase64, isLast: false, totalBytes },
+                },
+                () => {
+                    // schedule next read after ack to yield event loop
+                    setImmediate(sendNext);
+                }
+            );
+        };
+
+        stream.on('end', () => {
+            ended = true;
+            // If waiting for readable, sendNext will handle finalization
         });
         stream.on('error', () => {
-            this.sendMessage({
-                type: 'SEND_FILE_CHUNK',
-                payload: { fileName: payload.fileName, chunkBase64: '', isLast: true, totalBytes },
-            });
+            errored = true;
+            cleanup();
+            sendFinal();
         });
+
+        // Start in paused mode; no 'data' listener, so we manually pull
+        sendNext();
     }
 }
