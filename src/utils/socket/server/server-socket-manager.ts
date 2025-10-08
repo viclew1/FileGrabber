@@ -157,8 +157,6 @@ class ServerSocketManager extends Listenable<ServerEventPayloads> {
         if (!dirAbsolutePath) return undefined;
         const targetPath = dirAbsolutePath + '/' + fileName;
         if (!fs.existsSync(targetPath)) return undefined;
-        const stat = fs.lstatSync(targetPath);
-        if (stat.isDirectory()) return undefined;
         return targetPath;
     }
 

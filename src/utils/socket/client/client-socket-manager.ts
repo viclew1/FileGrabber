@@ -144,11 +144,20 @@ class ClientSocketManager extends Listenable<ClientEventPayloads> {
 
     startDownload(fileName: string, savePath: string) {
         if (!this.socketHandler) return;
-        this.downloadStreams.get(fileName)?.close();
-        const stream = fs.createWriteStream(savePath);
-        this.downloadStreams.set(fileName, stream);
-        this.downloadReceivedBytes.set(fileName, 0);
-        this.emit('downloadProgress', { fileName, receivedBytes: 0, totalBytes: 0, progress: 0 });
+        const entry = this.serverSharedFiles.find((f) => f.fileName === fileName);
+        const isFolder = entry?.type === 'folder';
+
+        const transferFileName = isFolder ? `${fileName}.zip` : fileName;
+        let finalSavePath = savePath;
+        if (isFolder && !finalSavePath.toLowerCase().endsWith('.zip')) {
+            finalSavePath = `${finalSavePath}.zip`;
+        }
+
+        this.downloadStreams.get(transferFileName)?.close();
+        this.downloadStreams.set(transferFileName, fs.createWriteStream(finalSavePath));
+        this.downloadReceivedBytes.set(transferFileName, 0);
+        this.emit('downloadProgress', { fileName: transferFileName, receivedBytes: 0, totalBytes: 0, progress: 0 });
+
         this.socketHandler.sendMessage({
             type: 'DOWNLOAD_FILE',
             payload: { path: this.serverFilesPath, fileName },

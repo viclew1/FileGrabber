@@ -90,10 +90,15 @@ ipcMain.handle('client:getSharedFiles', () => ClientSocketManager.getServerShare
 ipcMain.handle('client:getServerFilesPath', () => ClientSocketManager.getServerFilesPath());
 ipcMain.handle('client:setServerFilesPath', (_event, path: string) => ClientSocketManager.setServerFilesPath(path));
 ipcMain.handle('client:downloadFile', async (_event, fileName: string) => {
-    const ext = path.extname(fileName);
-    const options: Electron.SaveDialogOptions = { defaultPath: fileName } as any;
-    if (ext) {
-        const extNoDot = ext.slice(1);
+    const shared = ClientSocketManager.getServerSharedFiles();
+    const isFolder = shared.some((f) => f.fileName === fileName && f.type === 'folder');
+
+    const origExt = path.extname(fileName);
+    const effectiveExt = isFolder ? '.zip' : origExt;
+
+    const options: Electron.SaveDialogOptions = { defaultPath: isFolder ? `${fileName}.zip` : fileName } as any;
+    if (effectiveExt) {
+        const extNoDot = effectiveExt.slice(1);
         options.filters = [
             { name: `${extNoDot.toUpperCase()} files`, extensions: [extNoDot] },
             { name: 'All Files', extensions: ['*'] },
@@ -102,8 +107,8 @@ ipcMain.handle('client:downloadFile', async (_event, fileName: string) => {
     const result = await dialog.showSaveDialog(options);
     if (result.canceled || !result.filePath) return false;
     let savePath = result.filePath;
-    if (ext && !savePath.toLowerCase().endsWith(ext.toLowerCase())) {
-        savePath += ext;
+    if (effectiveExt && !savePath.toLowerCase().endsWith(effectiveExt.toLowerCase())) {
+        savePath += effectiveExt;
     }
     ClientSocketManager.startDownload(fileName, savePath);
     return true;

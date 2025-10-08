@@ -69,8 +69,6 @@ function MainContentFilesTree() {
 
 function DownloadsBar() {
     const { downloads } = useSocketClient();
-    console.log(downloads.length);
-
     if (!downloads || downloads.length === 0) return null;
 
     return (

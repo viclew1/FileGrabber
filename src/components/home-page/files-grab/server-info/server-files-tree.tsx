@@ -2,7 +2,7 @@ import { Flex, Separator, Spinner, Text } from '@radix-ui/themes';
 import { useSocketClient } from '../../../../contexts/socket-client-context';
 import VerticalFlex from '../../../custom/base/flex/vertical-flex';
 import SoftButton from '../../../custom/base/buttons/soft-button';
-import { FileIcon, FolderIcon, HomeIcon, StepBackIcon } from 'lucide-react';
+import { DownloadIcon, FileIcon, FolderIcon, HomeIcon, StepBackIcon } from 'lucide-react';
 import { partition, sortBy } from 'lodash';
 import { ACCENT_11, MINT_ACCENT_11 } from '../../../../app_constants';
 import { ClientServerSharedFile } from '../../../../utils/socket/client/client-socket-manager-types';
@@ -79,14 +79,19 @@ function FilesList() {
         changeFilesPath(filesPath + '/' + folder.fileName);
     };
 
-    const onFileClick = (file: ClientServerSharedFile) => {
+    const onDownloadClick = (file: ClientServerSharedFile) => {
         downloadFile(file.fileName);
     };
 
     return (
         <VerticalFlex gap={'1'}>
             {folders.map((folder) => (
-                <FolderCard key={folder.fileName} folder={folder} onFolderClick={onFolderClick} />
+                <FolderCard
+                    key={folder.fileName}
+                    folder={folder}
+                    onFolderClick={onFolderClick}
+                    downloadFile={onDownloadClick}
+                />
             ))}
             {files.length !== 0 && folders.length !== 0 && (
                 <Flex p={'2'}>
@@ -94,7 +99,12 @@ function FilesList() {
                 </Flex>
             )}
             {files.map((folder) => (
-                <FileCard key={folder.fileName} file={folder} onFileClick={onFileClick} />
+                <FileCard
+                    key={folder.fileName}
+                    file={folder}
+                    onFileClick={onDownloadClick}
+                    downloadFile={onDownloadClick}
+                />
             ))}
         </VerticalFlex>
     );
@@ -103,12 +113,14 @@ function FilesList() {
 function FolderCard({
     folder,
     onFolderClick,
+    downloadFile,
 }: {
     folder: ClientServerSharedFile;
     onFolderClick: (folder: ClientServerSharedFile) => void;
+    downloadFile: (folder: ClientServerSharedFile) => void;
 }) {
     return (
-        <GeneralFileCard file={folder} onClick={() => onFolderClick(folder)}>
+        <GeneralFileCard file={folder} onClick={onFolderClick} downloadFile={downloadFile}>
             <FolderIcon size={20} color={ACCENT_11} />
             <Text style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {folder.fileName}
@@ -120,12 +132,14 @@ function FolderCard({
 function FileCard({
     file,
     onFileClick,
+    downloadFile,
 }: {
     file: ClientServerSharedFile;
     onFileClick: (file: ClientServerSharedFile) => void;
+    downloadFile: (file: ClientServerSharedFile) => void;
 }) {
     return (
-        <GeneralFileCard file={file} onClick={() => onFileClick(file)}>
+        <GeneralFileCard file={file} onClick={onFileClick} downloadFile={downloadFile}>
             <FileIcon size={20} color={MINT_ACCENT_11} />
             <Text style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {file.fileName}
@@ -137,20 +151,29 @@ function FileCard({
 function GeneralFileCard({
     file,
     onClick,
+    downloadFile,
     children,
 }: {
     file: ClientServerSharedFile;
-    onClick: () => void;
+    onClick: (file: ClientServerSharedFile) => void;
+    downloadFile: (file: ClientServerSharedFile) => void;
     children: ReactNode;
 }) {
     return (
         <Flex
-            style={{ cursor: 'pointer', width: '100%', minWidth: '0' }}
-            onClick={onClick}
+            width={'100%'}
+            minWidth={'0'}
+            style={{ cursor: 'pointer' }}
             gap={'3'}
             key={file.fileName}
+            align={'center'}
         >
-            {children}
+            <SoftButton color={'mint'} onClick={() => downloadFile(file)}>
+                <DownloadIcon size={20} />
+            </SoftButton>
+            <Flex align={'center'} gap={'3'} width={'100%'} minWidth={'0'} onClick={() => onClick(file)}>
+                {children}
+            </Flex>
         </Flex>
     );
 }
